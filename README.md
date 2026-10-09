@@ -1,20 +1,22 @@
-# 📖 Manual de Uso - Parcheador Autónomo de Traducciones para Unreal Engine 5
+# 📖 Manual de Uso - Parcheador Multiengine (Unreal Engine / RPG Maker)
 
-El **Parcheador Autónomo (`Parcheador_JSON_UE5.exe`)** es una herramienta portátil diseñada para aplicar traducciones en juegos desarrollados con Unreal Engine 5 a partir de un archivo `.json` de forma **100% independiente** (no requiere tener instalado Python, LM Studio ni herramientas externas en el equipo).
+El **Parcheador Autónomo (`Parcheador_multiengine.exe`)** (versión **v0.2**) es una herramienta portátil diseñada para aplicar traducciones en juegos desarrollados tanto con **Unreal Engine (4 y 5)** como con **RPG Maker (MZ y MV)** de forma **100% independiente** (no requiere tener instalado Python, LM Studio ni herramientas externas en el equipo).
+
+Toma como entrada exclusivamente un paquete **`.zip`** que contiene la traducción y cualquier recurso gráfico o archivo complementario que requiera el juego.
 
 ---
 
 ## 📋 Índice
 1. [Requisitos Previos](#1-requisitos-previos)
-2. [Interfaz y Selección de Archivos](#2-interfaz-y-selección-de-archivos)
-   - [A. Archivo JSON de Traducción](#a-archivo-json-de-traducción)
-   - [B. Carpeta del Juego](#b-carpeta-del-juego)
-   - [C. Clave AES de Cifrado (Opcional)](#c-clave-aes-de-cifrado-opcional)
-3. [Explicación de Opciones de Parcheo](#3-explicación-de-opciones-de-parcheo)
-4. [Paso a Paso: Aplicar el Parche](#4-paso-a-paso-aplicar-el-parche)
-5. [Cómo Iniciar el Juego en Español](#5-cómo-iniciar-el-juego-en-español)
-6. [Resolución de Problemas Frecuentes](#6-resolución-de-problemas-frecuentes)
-7. [Cómo Desinstalar o Restaurar el Juego Original](#7-cómo-desinstalar-o-restaurar-el-juego-original)
+2. [Estructura del Paquete ZIP de Traducción](#2-estructura-del-paquete-zip-de-traducción)
+   - [A. Paquete ZIP para RPG Maker (MZ / MV)](#a-paquete-zip-para-rpg-maker-mz--mv)
+   - [B. Paquete ZIP para Unreal Engine (4 / 5)](#b-paquete-zip-para-unreal-engine-4--5)
+3. [Soporte Multi-Motor y Detección Automática](#3-soporte-multi-motor-y-detección-automática)
+4. [Interfaz y Opciones Dinámicas según Motor](#4-interfaz-y-opciones-dinámicas-según-motor)
+5. [Explicación de Opciones de Parcheo](#5-explicación-de-opciones-de-parcheo)
+6. [Paso a Paso: Aplicar el Parche](#6-paso-a-paso-aplicar-el-parche)
+7. [Cómo Iniciar el Juego en Español](#7-cómo-iniciar-el-juego-en-español)
+8. [Cómo Desinstalar o Restaurar el Juego Original](#8-cómo-desinstalar-o-restaurar-el-juego-original)
 
 ---
 
@@ -22,132 +24,121 @@ El **Parcheador Autónomo (`Parcheador_JSON_UE5.exe`)** es una herramienta port�
 
 > [!IMPORTANT]
 > **El juego debe estar CERRADO por completo antes de aplicar el parche.**  
-> Si el juego se encuentra en ejecución en segundo plano (`.exe`), el sistema operativo Windows bloqueará los archivos `.pak` contra escritura (`os error 32: Archivo en uso`), impidiendo que el parcheador actualice los textos.
+> Si el juego se encuentra en ejecución en segundo plano (`.exe`), el sistema operativo Windows bloqueará los archivos contra escritura impidiendo que el parcheador actualice los textos o imágenes.
 
-* **Archivo `.json` de traducción:** El archivo exportado desde el Editor Web de Traducciones (o generado por el traductor).
-* **Juego instalado:** Cualquier versión del juego instalada en el disco local.
+* **Paquete `.zip` de traducción:** Archivo comprimido con la traducción y recursos.
+* **Juego instalado:** Cualquier juego compatible de Unreal Engine o RPG Maker en el disco local.
 
 ---
 
-## 2. Interfaz y Selección de Archivos
+## 2. Estructura del Paquete ZIP de Traducción
 
-Al ejecutar `Parcheador_JSON_UE5.exe` se abrirá la ventana gráfica del instalador:
+El instalador recibe un único archivo comprimido `.zip` que contendrá todo lo necesario según el motor:
+
+### A. Paquete ZIP para RPG Maker (MZ / MV)
+Un archivo `.zip` que incluye el JSON de traducción y las imágenes o recursos en la estructura de carpetas del juego:
+```text
+MiTraduccion_RPGMaker.zip
+├── traduccion.json                  <-- Archivo JSON con metadatos y textos
+└── img/                             <-- Imágenes traducidas en su estructura relativa
+    └── pictures/
+        └── UI/
+            ├── Status_ResetButton.png
+            ├── Status_OKButton.png
+            └── Status_Skill_Fishing.png
+```
+* **Textos:** Inyecta automáticamente los textos traducidos en `data/*.json` y en `js/plugins.js`.
+* **Imágenes y recursos:** Despliega las imágenes traducidas en sus rutas correspondientes dentro del juego y realiza una copia de seguridad en `data/backup_original/assets/` de cualquier imagen sobrescrita para poder restaurarla en cualquier momento.
+
+### B. Paquete ZIP para Unreal Engine 4/5 (IoStore / Zen / Mods)
+Un archivo `.zip` que contiene:
+1. `metadata.json` (o archivo `.json` de metadatos del proyecto).
+2. Archivos precompilados del mod:
+   - Contenedor mod: `z_Spanish_P.pak` (o similar).
+   - Datos IoStore / Zen (UE5): `z_Spanish_P.ucas` y `z_Spanish_P.utoc`.
+   - (Opcional) Firmas `.sig`.
+
+> [!TIP]
+> **Despliegue rápido y seguro:**  
+> El parcheador no necesita desempaquetar archivos `.pak` gigantes originales. Despliega los mods en `Content/Paks`, configura los `.ini` y crea el acceso directo en segundos.
+
+---
+
+## 3. Soporte Multi-Motor y Detección Automática
+
+El parcheador analiza los metadatos y la estructura de la carpeta del juego:
+
+| Motor | Contenido del ZIP | Método de Inyección | Desinstalación / Restore |
+| :--- | :--- | :--- | :--- |
+| **Unreal Engine** | `metadata.json` + `.pak`, `.ucas`, `.utoc` | Despliegue en `Paks/`, configuración de `Engine.ini` y lanzador `.bat`. | Elimina los archivos `.pak`, `.ucas`, `.utoc` instalados y revierte `.ini`. |
+| **RPG Maker MZ / MV** | `traduccion.json` + carpeta `img/` u otros assets | Inyección en `data/*.json`, `js/plugins.js` y copia de imágenes en `img/`. | Restaura datos e imágenes originales desde `data/backup_original/`. |
+
+---
+
+## 4. Interfaz y Opciones Dinámicas según Motor
+
+Al ejecutar `Parcheador_multiengine.exe`, la interfaz se muestra limpia y compacta. Ni el cuadro de la clave AES ni los checkboxes de configuración se muestran inicialmente hasta que se carga y analiza el archivo `.zip`:
 
 ```
-+-----------------------------------------------------------------------+
-|  ⚡ Parcheador Universal UE (JSON ➔ Español Aditivo)                 |
-|  Añade el idioma Español a Unreal Engine 5 sin alterar originales.    |
-+-----------------------------------------------------------------------+
-|  📄 Archivo JSON de Traducción:                                       |
-|  [ C:/Ruta/A/traduccion_export.json                          ] [Examinar JSON...] |
-|                                                                       |
-|  🎮 Carpeta del Juego:                                                |
-|  [ D:/Juegos/MiJuego/game                                    ] [Examinar Carpeta.] |
-|                                                                       |
-|  🔑 Clave AES de Cifrado (Opcional - Solo si el juego está cifrado):  |
-|  [ 0x1A2B3C4D...                                                     ] |
-|                                                                       |
-|  [✓] Normalizar caracteres especiales (acentos / ñ)                  |
-|  [✓] Configurar inicio automático en Español (Engine.ini y .bat)      |
-|  [✓] Crear copia de seguridad (.orig) de paquetes originales          |
-|                                                                       |
-|  [                          🚀 Parchear Juego                        ] |
-|                                                                       |
-|  Consola de progreso:                                                 |
-|  ==================================================================== |
-|  [1/5] Leyendo archivo de traducciones...                             |
-+-----------------------------------------------------------------------+
++-------------------------------------------------------------------------------+
+|  ⚡ Parcheador Multiengine (Unreal Engine / RPG Maker)                   v0.2 |
+|  Aplica traducciones y recursos a Unreal Engine y RPG Maker desde paquetes ZIP|
++-------------------------------------------------------------------------------+
+|  📦 Paquete de Traducción (*.zip):                                            |
+|  [ C:/Ruta/A/MiTraduccion.zip                                ] [Examinar...]  |
+|                                                                               |
+|  🎮 Carpeta del Juego (donde está el .exe o Content/data):                   |
+|  [ D:/Juegos/MiJuego/                                        ] [Examinar Carpeta.] |
+|                                                                               |
+|  (La clave AES y las opciones aparecen dinámicamente al leer el paquete ZIP)  |
+|                                                                               |
+|  [ ⚡ PARCHEAR ]            [ ▶ JUGAR ]            [ ↺ Restaurar Original ]   |
+|                                                                               |
+|  Consola de Registro:                                                         |
+|  ============================================================================ |
+|  [1/5] Leyendo paquete de traducciones y metadatos...                         |
++-------------------------------------------------------------------------------+
 ```
 
-### A. Archivo JSON de Traducción
-1. Haz clic en el botón **`Examinar JSON...`**.
-2. Selecciona el archivo `.json` que contiene las traducciones.
-3. El parcheador admite tanto el formato por categorías/namespaces (`{ "Namespace": { "Clave": "Texto" } }`) como listas planas de frases.
-
-### B. Carpeta del Juego
-1. Haz clic en el botón **`Examinar Carpeta...`**.
-2. Selecciona la carpeta raíz de instalación del juego (donde se ubica el ejecutable del juego o las carpetas `Content/` / `Paks/`).
-3. El parcheador detectará y localizará automáticamente el contenedor `.pak` principal del proyecto (por ejemplo, `JUEGO-Windows.pak`).
-
-### C. Clave AES de Cifrado (Opcional)
-* **Juegos sin cifrar (la mayoría de indies y juegos de Unreal Engine):** Deja este campo completamente en blanco.
-* **Juegos comerciales con cifrado AES-256:** Introduce aquí la clave hexadecimal de 64 caracteres (ejemplo: `0x4A1E8F2C...`).
-* **Detección inteligente:** Si el juego está cifrado y dejas el campo vacío, el parcheador detectará automáticamente el bloqueo y te mostrará una ventana emergente solicitándote la clave AES para reintentar el parcheo sin tener que reiniciar el programa.
+* **Si se detecta RPG Maker:** Solo se muestra la opción aplicable de *Crear copia de seguridad (backup_original) de los archivos e imágenes originales* (sin cuadro de clave AES ni opciones innecesarias de `.ini`).
+* **Si se detecta Unreal Engine:** Se despliega el campo opcional de *Clave AES de Cifrado*, junto a las opciones de *Normalizar caracteres especiales*, *Configurar inicio automático en Español* y *Crear copia de seguridad (.orig)*.
 
 ---
 
-## 3. Explicación de Opciones de Parcheo
+## 5. Explicación de Opciones de Parcheo
 
-El parcheador incluye tres casillas de verificación configuradas por defecto con los valores recomendados:
-
-| Opción | Estado Recomendado | ¿Para qué sirve? |
-| :--- | :---: | :--- |
-| **Normalizar caracteres especiales** | **Activado (✓)** | Sustituye tildes (`á, é, í...`), diéresis (`ü`), eñes y comillas tipográficas por caracteres estándar limpios. Esto previene que los textos aparezcan rotos o con símbolos extraños (`?`, espacios vacíos) si la fuente del juego no incluye caracteres en español. |
-| **Configurar inicio automático en Español** | **Activado (✓)** | Inyecta la cultura `es-ES` en los archivos de configuración (`DefaultEngine.ini`, `Engine.ini` y `GameUserSettings.ini`) y genera el acceso directo **`Jugar_en_Espanol.bat`** en la carpeta del juego. |
-| **Crear copia de seguridad (.orig)** | **Activado (✓)** | Crea un respaldo exacto e intacto del paquete original del juego (ejemplo: `JUEGO-Windows.pak.orig`). Permite restaurar el juego a su estado de fábrica en cualquier momento. |
+| Opción | Aplica en | Descripción |
+| :--- | :--- | :--- |
+| **Crear copia de seguridad** | RPG Maker / Unreal Engine | Genera respaldos antes de modificar archivos (`data/backup_original/` con datos e imágenes en RPG Maker o `.orig` en Unreal Engine). |
+| **Normalizar caracteres especiales** | Solo Unreal Engine | Sustituye acentos para motores de Unreal Engine con fuentes limitadas. En RPG Maker se preservan todos los caracteres UTF-8 nativos automáticamente. |
+| **Configurar inicio automático en Español** | Solo Unreal Engine | Configura `Engine.ini`, `GameUserSettings.ini`, emuladores de Steam y genera accesos directos `.bat`. |
 
 ---
 
-## 4. Paso a Paso: Aplicar el Parche
+## 6. Paso a Paso: Aplicar el Parche
 
-1. Asegúrate de que el **juego esté cerrado**.
-2. Abre **`Parcheador_JSON_UE5.exe`**.
-3. Selecciona el archivo **JSON** y la **Carpeta del Juego**.
-4. (Opcional) Introduce la **Clave AES** si el juego requiere desencriptado.
-5. Deja marcadas las 3 opciones recomendadas.
-6. Haz clic en el botón verde **`🚀 Parchear Juego`**.
-7. La consola inferior mostrará el progreso en 5 etapas automáticas:
-   - **`[1/5]`** Lectura y validación de las frases del archivo JSON.
-   - **`[2/5]`** Normalización de acentos y caracteres especiales.
-   - **`[3/5]`** Desempaquetado temporal y extracción de las plantillas de hashes binarios UE.
-   - **`[4/5]`** Compilación binaria `.locres` e inyección de la cultura `es-ES` dentro del archivo `.pak`.
-   - **`[5/5]`** Limpieza de archivos temporales y creación del lanzador directo.
-8. Al finalizar, aparecerá una ventana emergente notificando:  
-   **`🎉 ¡Juego parcheado con éxito! Se añadió el idioma Español sin modificar los idiomas originales.`**
+1. Abre **`Parcheador_multiengine.exe`**.
+2. Selecciona el archivo **`.zip`** de traducción y la **Carpeta del Juego**.
+3. Revisa las opciones específicas que hayan aparecido para el motor de tu juego.
+4. Haz clic en **`⚡ PARCHEAR`**.
+5. El registro mostrará el avance en tiempo real hasta confirmar la inyección exitosa de textos y recursos.
 
 ---
 
-## 5. Cómo Iniciar el Juego en Español
+## 7. Cómo Iniciar el Juego en Español
 
-Para jugar con la traducción activa tienes dos métodos:
-
-### Método A: Mediante el lanzador directo (Recomendado)
-* Ve a la carpeta raíz del juego y haz doble clic sobre el archivo **`Jugar_en_Espanol.bat`**.
-* Este lanzador inicia el juego forzando el parámetro oficial de Unreal Engine: `-culture=es-ES`.
-
-### Método B: Lanzador habitual o cliente Steam
-* Si abres el juego directamente desde su `.exe` habitual o desde la biblioteca de Steam, el juego leerá automáticamente la configuración inyectada en `Engine.ini` / `DefaultEngine.ini` y cargará en español.
-* Si el juego incluye menú de selección de idioma en opciones, el español estará disponible como opción seleccionable.
+* **Desde la propia interfaz:** Haz clic en el botón **`▶ JUGAR`**. El parcheador iniciará automáticamente el ejecutable del juego (`Game.exe`, `nw.exe` o el binario de Unreal Engine).
+* **Desde el explorador de archivos:**
+  * **RPG Maker:** Ejecuta `Game.exe`.
+  * **Unreal Engine:** Ejecuta **`Jugar_en_Espanol.bat`** o el ejecutable principal.
 
 ---
 
-## 6. Resolución de Problemas Frecuentes
+## 8. Cómo Desinstalar o Restaurar el Juego Original
 
-### ❌ Error: *"El archivo .pak está bloqueado por el juego abierto"*
-* **Causa:** El ejecutable del juego (`JUEGO-Win64-Shipping.exe` o `JUEGO.exe`) sigue abierto en segundo plano.
-* **Solución:** Cierra el juego (o finaliza su proceso desde el Administrador de Tareas de Windows) y pulsa de nuevo en **`🚀 Parchear Juego`**.
-
-### ❌ Error: *"El archivo .pak está cifrado con AES. Se requiere la clave AES"*
-* **Causa:** El desarrollador comercial del juego protegió sus archivos `.pak` con una clave AES de 256 bits.
-* **Solución:** Introduce la clave AES en el campo de texto `🔑 Clave AES` (o en la ventana emergente que aparecerá automáticamente) y pulsa Aceptar.
-
-### ❌ El juego arranca en inglés o en otro idioma
-* **Causa:** El juego tiene configurada una preferencia regional persistente en su archivo de guardado (`SaveGames`).
-* **Solución:** Inicia el juego usando el archivo **`Jugar_en_Espanol.bat`**, o entra en el menú de opciones del juego y selecciona el idioma Español.
-
-### ❌ Los textos tienen signos extraños (`?` o símbolos rotos)
-* **Causa:** La tipografía interna del juego no soporta caracteres UTF-8 extendidos (tildes / diéresis).
-* **Solución:** Vuelve a aplicar el parche asegurándote de tener activada la casilla **`Normalizar caracteres especiales`**.
-
----
-
-## 7. Cómo Desinstalar o Restaurar el Juego Original
-
-El parcheador utiliza un método **completamente reversible**:
-
-1. Ve a la carpeta `Content/Paks/` del juego (por ejemplo: `JUEGO/Content/Paks/`).
-2. Elimina el archivo `JUEGO-Windows.pak` parcheado.
-3. Renombra la copia de seguridad `JUEGO-Windows.pak.orig` a `JUEGO-Windows.pak`.
-4. (Opcional) Borra el archivo `Jugar_en_Espanol.bat` de la raíz del juego.
-
-El juego volverá a su estado 100% original sin necesidad de reinstalarlo ni verificar archivos.
+1. Abre **`Parcheador_multiengine.exe`**.
+2. Selecciona la carpeta del juego (y opcionalmente el paquete ZIP).
+3. Haz clic en el botón **`↺ Restaurar Original`**.
+4. El programa:
+   - **RPG Maker:** Restaura los archivos `data/*.json`, `js/plugins.js` y las imágenes originales desde `data/backup_original/`, eliminando los archivos nuevos que se hubieran añadido.
+   - **Unreal Engine:** Elimina los archivos mod (`.pak`, `.ucas`, `.utoc`) de `Paks/`, revierte los `.ini` y elimina los accesos directos `.bat`.
